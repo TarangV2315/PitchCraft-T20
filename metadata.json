@@ -1,0 +1,6 @@
+{
+  "name": "PitchCraft T20",
+  "description": "T20 club cricket manager simulation with executive finances, staff delegation, tactical matchdays, transfers, and cloud-synced career saves.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
