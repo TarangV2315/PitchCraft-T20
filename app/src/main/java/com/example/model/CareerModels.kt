@@ -1,6 +1,7 @@
 package com.example.model
 
 import com.squareup.moshi.JsonClass
+import kotlin.math.roundToInt
 
 @JsonClass(generateAdapter = true)
 data class PlayerAttributes(
@@ -21,6 +22,7 @@ data class PlayerStats(
     val notOuts: Int = 0,
     val fours: Int = 0,
     val sixes: Int = 0,
+    val thirties: Int = 0,
     val fifties: Int = 0,
     val hundreds: Int = 0,
     val highScore: Int = 0,
@@ -28,6 +30,8 @@ data class PlayerStats(
     val runsConceded: Int = 0,
     val wickets: Int = 0,
     val dotBalls: Int = 0,
+    val maidens: Int = 0,
+    val threeWicketHauls: Int = 0,
     val bestWickets: Int = 0,
     val bestRuns: Int = 999
 ) {
@@ -90,7 +94,9 @@ data class Player(
     val isForeign: Boolean = false,
     val seasonStats: PlayerStats = PlayerStats(),
     val careerStats: PlayerStats = PlayerStats(),
-    val lastMatchNote: String = "Ready for selection"
+    val lastMatchNote: String = "Ready for selection",
+    val recentMatchWorkload: Int = 0,
+    val portraitVariant: Int = -1
 ) {
     val canBowl: Boolean
         get() = bowlingStyle.canBowl || role == T20Role.ALL_ROUNDER
@@ -107,8 +113,15 @@ data class StaffMember(
     val rating: Int,
     val specialty: String,
     val weeklySalary: Int,
-    val isHired: Boolean
-)
+    val isHired: Boolean,
+    val assignedFocus: CoachTrainingArea? = null
+) {
+    val isCoach: Boolean
+        get() = role.defaultTrainingArea != null
+
+    val effectiveTrainingArea: CoachTrainingArea?
+        get() = if (isCoach) (assignedFocus ?: role.defaultTrainingArea) else null
+}
 
 @JsonClass(generateAdapter = true)
 data class SponsorDeal(
@@ -120,7 +133,68 @@ data class SponsorDeal(
     val trophyBonus: Int,
     val minRankTarget: Int,
     val seasonsRemaining: Int,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val industry: String = "Commercial Partner",
+    val structureType: SponsorStructureType = SponsorStructureType.BALANCED,
+    val signingBonus: Int = 0,
+    val perFiftyBonus: Int = 0,
+    val perCenturyBonus: Int = 0,
+    val perThreeWicketHaulBonus: Int = 0,
+    val playerBrandingWeekly: Int = 0,
+    val cityFitSummary: String = "Broad Regional Appeal",
+    val negotiatedPct: Int = 0,
+    val projectedSeasonMin: Int = 0,
+    val projectedSeasonMax: Int = 0,
+    val contractSummary: String = ""
+) {
+    val totalWeeklyGuaranteed: Int
+        get() = weeklyPayout + playerBrandingWeekly
+}
+
+@JsonClass(generateAdapter = true)
+data class SeasonFinishRecord(
+    val season: Int,
+    val tier: Int,
+    val leagueRank: Int,
+    val points: Int,
+    val netRunRate: Double,
+    val wonTitle: Boolean
+)
+
+data class SponsorLeverageProfile(
+    val clubCity: String,
+    val cityDemographyScore: Int,
+    val cityDemographySummary: String,
+    val buyingPatternScore: Int,
+    val buyingPatternSummary: String,
+    val performanceHistoryScore: Int,
+    val performanceHistorySummary: String,
+    val playerCalibreScore: Int,
+    val playerCalibreSummary: String,
+    val overallLeverageScore: Int,
+    val maxNegotiationLiftPct: Int
+)
+
+data class SponsorNegotiationSession(
+    val deal: SponsorDeal,
+    val leverage: SponsorLeverageProfile,
+    val askBaseWeekly: Int,
+    val askBrandingWeekly: Int,
+    val askWinBonus: Int,
+    val askFiftyBonus: Int,
+    val askCenturyBonus: Int,
+    val askHaulBonus: Int,
+    val offeredBaseWeekly: Int,
+    val offeredBrandingWeekly: Int,
+    val offeredWinBonus: Int,
+    val offeredFiftyBonus: Int,
+    val offeredCenturyBonus: Int,
+    val offeredHaulBonus: Int,
+    val brandPatience: Int = 100,
+    val round: Int = 1,
+    val brandMessage: String,
+    val isAccepted: Boolean = false,
+    val isWalkedAway: Boolean = false
 )
 
 @JsonClass(generateAdapter = true)
@@ -153,6 +227,18 @@ data class DivisionTable(
     val tier: Int,
     val name: String,
     val clubs: List<ClubStanding>
+)
+
+@JsonClass(generateAdapter = true)
+data class TournamentPlayerStat(
+    val playerId: String,
+    val playerName: String,
+    val clubId: String,
+    val clubName: String,
+    val clubShortCode: String,
+    val tier: Int,
+    val role: T20Role,
+    val stats: PlayerStats = PlayerStats()
 )
 
 @JsonClass(generateAdapter = true)
@@ -237,11 +323,13 @@ data class CareerState(
     val clubName: String,
     val clubShortCode: String,
     val managerName: String,
+    val country: CricketNation = CricketNation.INDIA,
     val season: Int = 1,
     val week: Int = 1,
+    val isPreSeason: Boolean = true,
     val totalRounds: Int = 14,
     val seasonComplete: Boolean = false,
-    val divisionTier: Int = 3,
+    val divisionTier: Int = 1,
     val bankBalance: Int = 450000,
     val lastWeekNetCashflow: Int = 0,
     val boardConfidence: Int = 72,
@@ -250,12 +338,14 @@ data class CareerState(
     val stadiumCapacity: Int = 18000,
     val delegation: DelegationSettings = DelegationSettings(),
     val budgets: ExecutiveBudgets = ExecutiveBudgets(),
+    val trainingIntensity: TrainingIntensity = TrainingIntensity.MODERATE,
     val squad: List<Player> = emptyList(),
     val transferMarket: List<Player> = emptyList(),
     val staff: List<StaffMember> = emptyList(),
     val availableStaff: List<StaffMember> = emptyList(),
     val sponsors: List<SponsorDeal> = emptyList(),
     val divisions: List<DivisionTable> = emptyList(),
+    val tournamentStats: List<TournamentPlayerStat> = emptyList(),
     val fixtures: List<Fixture> = emptyList(),
     val matchHistory: List<MatchRecord> = emptyList(),
     val ledger: List<FinanceLedgerEntry> = emptyList(),
@@ -265,7 +355,16 @@ data class CareerState(
     val defaultTempo: BattingTempo = BattingTempo.BALANCED,
     val defaultBowlingPlan: BowlingPlan = BowlingPlan.LINE_AND_LENGTH,
     val defaultFieldSpread: FieldSpread = FieldSpread.BALANCED,
+    val preMatchTeamTalk: TeamTalkTone = TeamTalkTone.ENCOURAGING,
     val seasonSummaryBanner: String? = null,
+    val seasonTicketIncome: Int = 0,
+    val seasonSponsorIncome: Int = 0,
+    val seasonPlayerWagesPaid: Int = 0,
+    val seasonStaffWagesPaid: Int = 0,
+    val seasonUpkeepPaid: Int = 0,
+    val homeMatchesHosted: Int = 0,
+    val clubCity: String = "",
+    val seasonHistory: List<SeasonFinishRecord> = emptyList(),
     val updatedAtMillis: Long = System.currentTimeMillis()
 ) {
     val weeklyPlayerWages: Int
@@ -274,8 +373,32 @@ data class CareerState(
     val weeklyStaffWages: Int
         get() = staff.sumOf { it.weeklySalary }
 
+    val weeklyTotalWages: Int
+        get() = weeklyPlayerWages + weeklyStaffWages
+
     val weeklySponsorIncome: Int
-        get() = sponsors.filter { it.isActive }.sumOf { it.weeklyPayout }
+        get() = sponsors.filter { it.isActive }.sumOf { it.totalWeeklyGuaranteed }
+
+    val isSponsorshipWindowOpen: Boolean
+        get() = isPreSeason && week == 1 && !seasonComplete
+
+    val projectedAttendance: Int
+        get() = (stadiumCapacity * budgets.ticketTier.attendanceFactor).roundToInt()
+
+    val projectedHomeTicketRevenue: Int
+        get() = projectedAttendance * budgets.ticketTier.pricePerSeat
+
+    val projectedWeeklyGateAverage: Int
+        get() = projectedHomeTicketRevenue / 2
+
+    val projectedWeeklyTotalIncome: Int
+        get() = weeklySponsorIncome + projectedWeeklyGateAverage
+
+    val seasonTrackedIncome: Int
+        get() = seasonTicketIncome + seasonSponsorIncome
+
+    val seasonWageExpenses: Int
+        get() = seasonPlayerWagesPaid + seasonStaffWagesPaid
 
     val nextUserFixture: Fixture?
         get() = fixtures.firstOrNull {
@@ -284,4 +407,68 @@ data class CareerState(
 
     val currentDivision: DivisionTable?
         get() = divisions.firstOrNull { it.tier == divisionTier }
+
+    val midSeasonTransferWeek: Int
+        get() = (totalRounds / 2) + 1
+
+    val transferWindowPhase: TransferWindowPhase
+        get() = when {
+            seasonComplete -> TransferWindowPhase.CLOSED
+            isPreSeason && week == 1 -> TransferWindowPhase.PRE_SEASON
+            week == midSeasonTransferWeek -> TransferWindowPhase.MID_SEASON
+            else -> TransferWindowPhase.CLOSED
+        }
+
+    val isTransferWindowOpen: Boolean
+        get() = transferWindowPhase != TransferWindowPhase.CLOSED
+
+    val transferWindowStatus: TransferWindowStatus
+        get() = when (transferWindowPhase) {
+            TransferWindowPhase.PRE_SEASON -> TransferWindowStatus(
+                isOpen = true,
+                phase = TransferWindowPhase.PRE_SEASON,
+                title = "Pre-Season Transfer Window Open",
+                subtitle = "Active for 1 week (Week 1) before Season $season gets underway.",
+                weeksUntilNextWindow = 0
+            )
+            TransferWindowPhase.MID_SEASON -> TransferWindowStatus(
+                isOpen = true,
+                phase = TransferWindowPhase.MID_SEASON,
+                title = "Mid-Season Transfer Window Open",
+                subtitle = "Active for 1 week (Week $week of $totalRounds) — closes after this round.",
+                weeksUntilNextWindow = 0
+            )
+            TransferWindowPhase.CLOSED -> {
+                val weeksUntilMid = if (!seasonComplete && week < midSeasonTransferWeek) {
+                    midSeasonTransferWeek - week
+                } else null
+                val subtitle = when {
+                    seasonComplete -> "Window closed. Re-opens for 1 week at Season ${season + 1} Pre-Season."
+                    weeksUntilMid != null -> "Opens mid-season at Week $midSeasonTransferWeek (in $weeksUntilMid wk${if (weeksUntilMid == 1) "" else "s"})."
+                    else -> "Mid-season window closed. Next window opens at Season ${season + 1} Pre-Season."
+                }
+                TransferWindowStatus(
+                    isOpen = false,
+                    phase = TransferWindowPhase.CLOSED,
+                    title = "Transfer Window Closed",
+                    subtitle = subtitle,
+                    weeksUntilNextWindow = weeksUntilMid
+                )
+            }
+        }
 }
+
+enum class TransferWindowPhase(val label: String) {
+    PRE_SEASON("Pre-Season Window"),
+    MID_SEASON("Mid-Season Window"),
+    CLOSED("Window Closed")
+}
+
+data class TransferWindowStatus(
+    val isOpen: Boolean,
+    val phase: TransferWindowPhase,
+    val title: String,
+    val subtitle: String,
+    val weeksUntilNextWindow: Int?
+)
+

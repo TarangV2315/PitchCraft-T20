@@ -381,28 +381,11 @@ fun PlayerSummaryCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // OVR Rating Pill
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "${player.overall}",
-                        style = TelemetryTextStyles.statValue.copy(
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    Text(
-                        text = "POT ${player.potential}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.spCompat),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            PlayerAvatar(
+                player = player,
+                sizeDp = 46,
+                showOvrBadge = true
+            )
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -482,5 +465,59 @@ fun PlayerSummaryCard(
     }
 }
 
-private val Int.spCompat
-    get() = androidx.compose.ui.unit.TextUnit(this.toFloat(), androidx.compose.ui.unit.TextUnitType.Sp)
+@Composable
+fun SquadViewModeToggle(
+    mode: SquadViewMode,
+    onModeChange: (SquadViewMode) -> Unit,
+    testTagPrefix: String = "squad",
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            SquadViewMode.entries.forEach { entry ->
+                val selected = mode == entry
+                val tagSuffix = entry.name.lowercase()
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    modifier = Modifier
+                        .heightIn(min = 38.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onModeChange(entry) }
+                        .testTag("${testTagPrefix}_view_toggle_$tagSuffix")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (entry == SquadViewMode.TILE) Icons.Filled.GridView else Icons.Filled.TableRows,
+                            contentDescription = "${entry.label} view",
+                            tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = entry.label,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                            ),
+                            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

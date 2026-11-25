@@ -31,6 +31,7 @@ fun TransfersScreen(
     onCloseNegotiation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val windowStatus = career.transferWindowStatus
     var showShortlistOnly by remember { mutableStateOf(false) }
     var roleFilter by remember { mutableStateOf<T20Role?>(null) }
 
@@ -49,6 +50,10 @@ fun TransfersScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            TransferWindowBanner(status = windowStatus)
+        }
+
+        item {
             DelegationBanner(
                 area = DelegationArea.TRANSFERS,
                 isDelegated = career.delegation.transfersDelegated,
@@ -58,45 +63,16 @@ fun TransfersScreen(
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Global T20 Transfer Market", style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        text = "Available Cash: ${formatCurrency(career.bankBalance)} • Scout Lvl ${career.budgets.scoutingLevel}/5",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                FilterChip(
-                    selected = showShortlistOnly,
-                    onClick = { showShortlistOnly = !showShortlistOnly },
-                    label = { Text("Shortlist (${career.transferMarket.count { it.isShortlisted }})") },
-                    leadingIcon = { Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                )
-            }
-        }
-
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    FilterChip(
-                        selected = roleFilter == null,
-                        onClick = { roleFilter = null },
-                        label = { Text("All Roles") }
-                    )
-                }
-                items(T20Role.entries) { role ->
-                    FilterChip(
-                        selected = roleFilter == role,
-                        onClick = { roleFilter = if (roleFilter == role) null else role },
-                        label = { Text(role.shortLabel) }
-                    )
-                }
-            }
+            TransferMarketFilterHeader(
+                bankBalance = career.bankBalance,
+                scoutingLevel = career.budgets.scoutingLevel,
+                shortlistCount = career.transferMarket.count { it.isShortlisted },
+                availableCount = marketList.size,
+                showShortlistOnly = showShortlistOnly,
+                onToggleShortlistOnly = { showShortlistOnly = !showShortlistOnly },
+                selectedRole = roleFilter,
+                onSelectRole = { roleFilter = it }
+            )
         }
 
         if (marketList.isEmpty()) {
@@ -119,60 +95,12 @@ fun TransfersScreen(
             }
         } else {
             items(marketList, key = { it.id }) { target ->
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceContainer
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(target.name, style = MaterialTheme.typography.titleMedium)
-                                    RoleChip(target.role)
-                                }
-                                Text(
-                                    text = "${target.nationality} • ${target.age}y • OVR ${target.overall} / POT ${target.potential}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(onClick = { onToggleShortlist(target.id) }) {
-                                Icon(
-                                    imageVector = if (target.isShortlisted) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                                    contentDescription = "Shortlist",
-                                    tint = if (target.isShortlisted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Est. Fee ${formatCompactCurrency(target.marketValue)} • ${formatCompactCurrency(target.contract.weeklyWage)}/wk",
-                                style = TelemetryTextStyles.statSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            FilledTonalButton(
-                                onClick = { onOpenNegotiation(target) },
-                                modifier = Modifier.testTag("negotiate_${target.id}")
-                            ) {
-                                Text("Negotiate")
-                            }
-                        }
-                    }
-                }
+                TransferMarketPlayerCard(
+                    player = target,
+                    isWindowOpen = windowStatus.isOpen,
+                    onToggleShortlist = { onToggleShortlist(target.id) },
+                    onBid = { onOpenNegotiation(target) }
+                )
             }
         }
     }

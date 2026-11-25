@@ -10,11 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.model.*
 import com.example.simulation.StaffAdvisorEngine
@@ -41,18 +41,22 @@ fun PlayerActivityScreen(
     val recommendations = remember(player, career.selectedXIIds, career.staff) {
         StaffAdvisorEngine.buildPlayerRecommendations(player, career)
     }
+    var showScreenGuide by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Player Activity & Telemetry") },
+                title = { Text("Player Telemetry", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("player_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TopLeftInfoButton(onClick = { showScreenGuide = true })
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.testTag("player_back_button")
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )
@@ -79,9 +83,14 @@ fun PlayerActivityScreen(
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            PlayerAvatar(
+                                player = player,
+                                sizeDp = 64,
+                                showOvrBadge = false
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -331,9 +340,16 @@ fun PlayerActivityScreen(
                             if (player.isOnTransferList) {
                                 FilledTonalButton(
                                     onClick = { onSellPlayer(player.id) },
+                                    enabled = career.isTransferWindowOpen,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Accept Market Bid (${formatCompactCurrency((player.marketValue * 0.85).toInt())})")
+                                    Text(
+                                        if (career.isTransferWindowOpen) {
+                                            "Accept Market Bid (${formatCompactCurrency((player.marketValue * 0.85).toInt())})"
+                                        } else {
+                                            "Sale Locked • Transfer Window Closed"
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -341,6 +357,13 @@ fun PlayerActivityScreen(
                 }
             }
         }
+    }
+
+    if (showScreenGuide) {
+        ScreenGuideDialog(
+            initialScreenId = ScreenGuideId.PLAYER_ACTIVITY,
+            onDismiss = { showScreenGuide = false }
+        )
     }
 }
 

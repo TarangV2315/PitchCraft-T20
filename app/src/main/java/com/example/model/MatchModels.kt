@@ -25,7 +25,8 @@ data class BowlerScoreEntry(
     val ballsBowled: Int = 0,
     val runsConceded: Int = 0,
     val wickets: Int = 0,
-    val dotBalls: Int = 0
+    val dotBalls: Int = 0,
+    val maidens: Int = 0
 ) {
     val oversText: String
         get() = "${ballsBowled / 6}.${ballsBowled % 6}"
@@ -66,7 +67,27 @@ data class MatchRecord(
     val firstInnings: InningsScorecard,
     val secondInnings: InningsScorecard,
     val keyHighlights: List<String>,
-    val revenueEarned: Int
+    val revenueEarned: Int,
+    val ticketSalesRevenue: Int = 0,
+    val sponsorBonusEarned: Int = 0,
+    val winSponsorBonus: Int = 0,
+    val individualMilestoneBonus: Int = 0,
+    val attendance: Int = 0
+)
+
+@JsonClass(generateAdapter = true)
+data class BallEvent(
+    val id: String,
+    val innings: Int,
+    val overBallText: String,
+    val symbol: String,
+    val batterName: String,
+    val bowlerName: String,
+    val runsScored: Int,
+    val isWicket: Boolean,
+    val isBoundary: Boolean,
+    val commentary: String,
+    val scoreAfterBall: String
 )
 
 data class KeyMomentPrompt(
@@ -78,7 +99,15 @@ data class KeyMomentPrompt(
     val staffTip: String,
     val recommendedTempo: BattingTempo? = null,
     val recommendedBowlingPlan: BowlingPlan? = null,
-    val recommendedField: FieldSpread? = null
+    val recommendedField: FieldSpread? = null,
+    val isInningsBreak: Boolean = false,
+    val recommendedTeamTalk: TeamTalkTone? = null
+)
+
+data class RunRatePoint(
+    val ball: Int,
+    val crr: Double,
+    val rrr: Double? = null
 )
 
 data class LiveMatchState(
@@ -96,9 +125,17 @@ data class LiveMatchState(
     val firstInningsSummary: InningsScorecard?,
     val secondInningsSummary: InningsScorecard?,
     val commentaryLog: List<String>,
+    val ballFeed: List<BallEvent> = emptyList(),
+    val runRateHistory: List<RunRatePoint> = emptyList(),
+    val activeBatterFitness: Map<String, Int> = emptyMap(),
+    val activeBowlerFitness: Int = 100,
+    val matchupSummary: String = "",
     val currentTempo: BattingTempo,
     val currentBowlingPlan: BowlingPlan,
     val currentFieldSpread: FieldSpread,
+    val preMatchTeamTalk: TeamTalkTone = TeamTalkTone.ENCOURAGING,
+    val inningsBreakTeamTalk: TeamTalkTone? = null,
+    val postMatchTeamTalkDelivered: TeamTalkTone? = null,
     val availableImpactSubs: List<Player>,
     val impactSubUsed: Boolean,
     val pendingKeyMoment: KeyMomentPrompt?,
